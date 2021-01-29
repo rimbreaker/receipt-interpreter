@@ -21,3 +21,6 @@ TODO:
 - useContext for possible state management
 - ? image processing optimization
 - ? tesseract workers optimization
+  - localization
+  - save to cloud drive options
+  - offline options
