@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createWorker } from "tesseract.js";
+import {useTranslation} from 'react-i18next'
+import {iterateOverAll} from './utils/navigatorLangToTessLang'
 
 const App = () => {
+  iterateOverAll()
+  const {t,i18n}=useTranslation()
+  const changeLanguage = (language)=>{
+    i18n.changeLanguage(language)
+  }
   const worker = createWorker({
     logger: (m) => console.log(m),
   });
@@ -41,6 +48,7 @@ const App = () => {
       .catch(function (err) {
         console.log(err.name + ":" + err.message);
       });
+      // eslint-disable-next-line
   }, []);
 
   const takeAPhoto = () => {
@@ -66,18 +74,21 @@ const [src,setSrc]=useState('')
 
   return (
     <div className="App">
-      <button onClick={takeAPhoto}>take a photo</button>
-      <button onClick={startAgain}>start again</button>
+      <button onClick={()=>changeLanguage('en')}>EN</button>
+      <button  onClick={()=>changeLanguage('pl')}>PL</button>
+      <button onClick={takeAPhoto}>{t('takeAPhoto')}</button>
+      <button onClick={startAgain}>{t('restart')}</button>
       <video ref={video} />
-      <button onClick={uploadFile}>wgraj plik</button>
+      <button onClick={uploadFile}>{t('fileUpload')}</button>
       <input
         type="file"
         name='file'
         ref={fileInput}
         onChange={recognizeUploaded}
+        accept="image/*"
         hidden
       />
-      <img src={src} alt="gowno"/>
+      {src && <img src={src} alt=""/>}
       <p>{ocr}</p>
     </div>
   );
