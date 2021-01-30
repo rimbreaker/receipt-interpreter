@@ -8,11 +8,14 @@ Done:
 - applying tesseract to uploaded file
 - upload file check
 - language changing
+- investigation into correlation between navigator language and tesseract languages
 
 TODO:
 
-- investigation into correlation between navigator language and tesseract languages
+- search for square finding libraries
+- work with marvinj
 - displaying text result as a table/csv
+
 - visual component library
 - PWA
 - Typescript
