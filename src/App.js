@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { createWorker } from "tesseract.js";
+import  { createWorker } from "tesseract.js";
 import { useTranslation } from "react-i18next";
 import { i18nToTessLang, navToi18nLang } from "./utils/navigatorLangToTessLang";
-//import { MarvinImage,Marvin } from "marvinj";
+import cannyEdgeDetector from "canny-edge-detector";
+import Image from "image-js";
 
 const App = () => {
   const { t, i18n } = useTranslation();
@@ -14,15 +15,17 @@ const App = () => {
     }
   };
   const worker = createWorker({
-    logger: (m) => console.log(m),
+    //logger: (m) => console.log(m),
+    //errorHandler: (err) => console.log(err),
   });
+
   const [ocr, setOcr] = useState("Recognizing...");
 
   const doOCR = async (url) => {
     await worker.load();
     await worker.loadLanguage(i18nToTessLang(i18n.language));
     await worker.initialize(i18nToTessLang(i18n.language));
-    const { data } = await worker.recognize(url);
+    const data = await worker.recognize(url);
     console.log(data);
     setOcr(data.text);
   };
@@ -30,7 +33,6 @@ const App = () => {
   const video = useRef();
   const fileInput = useRef();
   const canvas = document.createElement("canvas");
-  //var testImage = new MarvinImage(); //marvin testing
   const context = canvas.getContext("2d");
   const [w, h] = [video.current?.videoWidth, video.current?.videoHeight];
   canvas.width = w;
@@ -73,31 +75,25 @@ const App = () => {
     fileInput.current.click();
   };
 
-
-//const imageTestLoaded=()=>{
-//  var segments = Marvin.findTextRegions(testImage, 10, 20, 70, 200); 
-//drawSegments(segments, testImage); 
-//testImage.draw(canvas); 
-//}
-
-  //function drawSegments(segments, image){ 
-  //  for(var i in segments){ 
-  //    var seg = segments[i];
-  //    // Skip segments that are too small
-  //    if(seg.height >= 5){ 
-  //      image.drawRect(seg.x1, seg.y1-5, seg.width, seg.height+10, 0xFFFF0000); 
-  //      image.drawRect(seg.x1+1, seg.y1-4, seg.width-2, seg.height+8, 0xFFFF0000); 
-  //    } 
-  //  } 
-  //}
-
   const [src, setSrc] = useState("");
   const recognizeUploaded = (e) => {
-    //testImage.load(src, imageTestLoaded);
     console.log(e.target.files[0]);
     const url = URL.createObjectURL(e.target.files[0]);
+
     setSrc(url);
     doOCR(url);
+    testCanny(url);
+  };
+
+  const testCanny = (url) => {
+    Image.load(url).then((img) => {
+      console.log("img: ",img)
+      const grey = img.grey();
+      console.log("grey: ",grey)
+      const edge = cannyEdgeDetector(grey);
+      console.log("edge: ",edge)
+      setSrc(grey.toDataURL());
+    });
   };
 
   return (

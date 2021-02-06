@@ -12,8 +12,7 @@ Done:
 
 TODO:
 
-- search for square finding libraries
-- work with marvinj
+- Harris corner detection for finding squares, Image-js for making the mimage black and white
 - displaying text result as a table/csv
 
 - visual component library
