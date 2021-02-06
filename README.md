@@ -14,6 +14,7 @@ Done:
 TODO:
 
 - display the generated html, but swap the values inside of the spans for the most accurate ones
+- switch some most occuring letter inacuracies
 - maybe recognize if needs to be inverted?
 - make video as far option
 - make it pastebale/dragt'n drop?
