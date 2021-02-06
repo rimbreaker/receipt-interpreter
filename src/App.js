@@ -1,12 +1,36 @@
 import React, { useState, useRef, useEffect } from "react";
-import  { createWorker } from "tesseract.js";
+import { createWorker } from "tesseract.js";
 import { useTranslation } from "react-i18next";
 import { i18nToTessLang, navToi18nLang } from "./utils/navigatorLangToTessLang";
-import cannyEdgeDetector from "canny-edge-detector";
 import Image from "image-js";
 
 const App = () => {
   const { t, i18n } = useTranslation();
+
+const normalWorker=createWorker()
+const grayWorker=createWorker()
+const inverseWorker=createWorker()
+const inverseGrayWorker=createWorker()
+const grayInverseWorker=createWorker()
+const inverseGrayMaskWorker=createWorker()
+var asyncLines=[]
+const  [lines,setLines]=useState([])
+
+const workers=[normalWorker,grayWorker,inverseWorker,grayInverseWorker,inverseGrayWorker,inverseGrayMaskWorker]
+
+const recognizeAll=async(img)=>{
+  console.log("started")
+  const transformedImages=[
+    await Image.load(img).then(img=>img.toDataURL()),
+    await Image.load(img).then(img=>img.grey().toDataURL()),
+    await Image.load(img).then(img=>img.invert().toDataURL()),
+    await Image.load(img).then(img=>img.grey().invert().toDataURL()),
+    await Image.load(img).then(img=>img.invert().grey().toDataURL()),
+    await Image.load(img).then(img=>img.invert().grey().mask({threshold:0.55}).toDataURL())
+  ]
+  workers.forEach((worker,index)=>doOCR(worker,transformedImages[index],index))
+  
+}
 
   const changeLanguage = (language, persist = false) => {
     i18n.changeLanguage(language);
@@ -14,20 +38,29 @@ const App = () => {
       localStorage.setItem("lang", language);
     }
   };
-  const worker = createWorker({
-    //logger: (m) => console.log(m),
-    //errorHandler: (err) => console.log(err),
-  });
 
-  const [ocr, setOcr] = useState("Recognizing...");
-
-  const doOCR = async (url) => {
+  //const [ocr, setOcr] = useState("Recognizing...");
+  const [srcObject, setSrcObjext] = useState("");
+  const srcDoc = `
+<html>
+  <body>${srcObject}</body>
+</html>
+`;
+  const doOCR = async (worker,url,index) => {
     await worker.load();
     await worker.loadLanguage(i18nToTessLang(i18n.language));
     await worker.initialize(i18nToTessLang(i18n.language));
-    const data = await worker.recognize(url);
-    console.log(data);
-    setOcr(data.text);
+    const {data} = await worker.recognize(url);
+    await data.lines.forEach( (line,index)=>{
+      if(index===7)console.log(line.confidence,line.text)
+      if(!asyncLines[index]||asyncLines[index].confidence<line.confidence)
+      asyncLines[index]=line
+    })
+    console.log(data.hocr)
+
+    console.log([...asyncLines])
+    if(index===5)
+    setLines(asyncLines)
   };
 
   const video = useRef();
@@ -80,20 +113,24 @@ const App = () => {
     console.log(e.target.files[0]);
     const url = URL.createObjectURL(e.target.files[0]);
 
-    setSrc(url);
-    doOCR(url);
+    //setSrc(url);
+    //doOCR(url);
     testCanny(url);
   };
 
   const testCanny = (url) => {
-    Image.load(url).then((img) => {
-      console.log("img: ",img)
-      const grey = img.grey();
-      console.log("grey: ",grey)
-      const edge = cannyEdgeDetector(grey);
-      console.log("edge: ",edge)
-      setSrc(grey.toDataURL());
-    });
+    recognizeAll(url)
+  // Image.load(url).then((img) => {
+  //   console.log("img: ", img);
+  //   const grey = img.invert().grey().mask({threshold: 0.55})
+  //  /*    .grey().invert() 
+  //     .mask({ threshold: 0.3 });
+  //   console.log("grey: ", grey); */
+  //   // const edge = cannyEdgeDetector(grey);
+  //   //console.log("edge: ", edge);
+  //   setSrc(grey.toDataURL());
+  //   doOCR(grey.toDataURL())
+  // });
   };
 
   return (
@@ -112,8 +149,9 @@ const App = () => {
         accept="image/*"
         hidden
       />
-      {src && <img src={src} alt="" />}
-      <p>{ocr}</p>
+      {src && <img src={lines} alt="" />}
+      {lines.map(line=><div>{line.text}</div>)}
+      <iframe width="720" srcDoc={srcDoc} title="output" sandbox="allow-scripts" />
     </div>
   );
 };
