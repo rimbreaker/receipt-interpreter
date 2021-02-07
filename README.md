@@ -10,17 +10,20 @@ Done:
 - language changing
 - investigation into correlation between navigator language and tesseract languages
 - asynchronus getting results from different enhancement methods
+- copy button
+- programming language choice
+- paste behind current lines
+- don't break when no file selected
+- drag'n drop
+- make it pastebale/
 
 TODO:
 
-- switch some most occuring letter inacuracies
-- maybe recognize if needs to be inverted?
-- make it pastebale/dragt'n drop?
 - visual component library
 - PWA
 - Typescript
-- copy to clippboard
 - Cypress/React test library
 - Framer Motion
+- optimalization of recognition for different languages
 - useContext for possible state management
 - offline options

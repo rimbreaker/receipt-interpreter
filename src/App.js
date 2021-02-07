@@ -7,6 +7,7 @@ import CodeWindow from "./components/CodeWindow";
 import Spinner from "./components/Spinner";
 import LocalizationHandling from "./components/LocalizationHandling";
 
+
 const App = () => {
   const { t } = useTranslation();
 
@@ -49,7 +50,7 @@ const App = () => {
     words.forEach((word) => symbols.push(...word.symbols));
     const keyWords = ["use", "set"];
     let symbolsOffset = 0;
-    let indentation = 0
+    let indentation = 0;
     for (let i = 0; i < wholeText.length; i++) {
       //update offset
       if (
@@ -58,15 +59,13 @@ const App = () => {
       ) {
         symbolsOffset++;
       }
-      if(wholeText[i]==="{")indentation++
-      if(wholeText[i]==="}")indentation--
+      if (wholeText[i] === "{") indentation++;
+      if (wholeText[i] === "}") indentation--;
       //ones checking values before
       if (i > 0 && i < wholeText.length) {
-        
         //give indentation
-        if(wholeText[i-1]==='\n')
-        for(let j=0;j<indentation;j++)
-          newText+='\t'
+        if (wholeText[i - 1] === "\n")
+          for (let j = 0; j < indentation; j++) newText += "\t";
         //if in square braces then change to 0
         if (wholeText[i - 1] === "[" && wholeText[i + 1] === "]") {
           if (symbols[i - symbolsOffset].confidence < 95) {
@@ -94,9 +93,9 @@ const App = () => {
           wholeText[i + 1] === "\n" &&
           wholeText[i] === "b"
         ) {
-          indentation--
-          newText=newText.slice(0,-1)
-          newText+="};"
+          indentation--;
+          newText = newText.slice(0, -1);
+          newText += "};";
           continue;
         }
         //delete whitespaces after dots
@@ -116,11 +115,10 @@ const App = () => {
           newText += "S";
           continue;
         }
-
       }
       newText += wholeText[i];
     }
-    return newText
+    return newText;
   };
 
   const isDigit = (symbol) => {
@@ -143,8 +141,8 @@ const App = () => {
 
     if (index === 4) {
       setIsLoading(false);
-     // asyncLines.forEach((line) => setSrcObject((prev) => prev + line.text));
-      setSrcObject(checkForBetterGuesses(asyncLines))
+      // asyncLines.forEach((line) => setSrcObject((prev) => prev + line.text));
+      setSrcObject((prev) => prev + "\n" + checkForBetterGuesses(asyncLines));
       //setSrcObject(asyncLines.map((line) => line.text).join(""));
     }
   };
@@ -156,30 +154,57 @@ const App = () => {
   };
 
   const [src, setSrc] = useState("");
-  const recognizeUploaded = (e) => {
-    const url = URL.createObjectURL(e.target.files[0]);
-    setSrc(url);
-    recognizeAll(url);
+
+  const recognizeUploaded = (file) => {
+    
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setSrc(url);
+      recognizeAll(url);
+    }
   };
 
+  const dropFile=(e)=>{
+    e.preventDefault();
+    
+    if(e.dataTransfer.items){
+      if(e.dataTransfer.items[0].kind==='file')
+      var file=e.dataTransfer.items[0].getAsFile()
+      recognizeUploaded(file)
+    }else{
+      recognizeUploaded(e.dataTransfer.files[0])
+    }
+  }
+
+  document.onpaste = function(pasteEvent) {
+  var item = pasteEvent.clipboardData.items[0];
+
+  if (item?.type.indexOf("image") === 0) {
+    var blob = item.getAsFile();
+    recognizeUploaded(blob)
+  }
+}
   return (
     <div className="App">
       <LocalizationHandling />
       <Camera doOCR={doOCR} />
+      <div style={{background:'blue',height:"100px",width:"400px",color:'white'}} id="drop_zone" onDrop={dropFile}  onDragOver={e=>e.preventDefault()} >
+        <input  ></input>
+        <p>Drag and drop here</p>
+      </div>
       <button onClick={uploadFile}>{t("fileUpload")}</button>
       <input
         type="file"
         name="file"
         ref={fileInput}
-        onChange={recognizeUploaded}
+        onChange={e=>recognizeUploaded(e.target.files[0])}
         accept="image/*"
         hidden
       />
       {isLoading && <Spinner />}
       {!isLoading && src && <img src={src} alt="" />}
-      {!isLoading && srcObject && (
-        <CodeWindow value={srcObject} onChange={setSrcObject} />
-      )}
+
+      <CodeWindow value={srcObject} onChange={setSrcObject} />
     </div>
   );
 };
