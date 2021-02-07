@@ -1,108 +1,155 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { createWorker } from "tesseract.js";
 import { useTranslation } from "react-i18next";
-import { i18nToTessLang, navToi18nLang } from "./utils/navigatorLangToTessLang";
+import Camera from "./components/Camera";
 import Image from "image-js";
+import CodeWindow from "./components/CodeWindow";
+import Spinner from "./components/Spinner";
+import LocalizationHandling from "./components/LocalizationHandling";
 
 const App = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
-const normalWorker=createWorker()
-const grayWorker=createWorker()
-const inverseWorker=createWorker()
-const inverseGrayWorker=createWorker()
-const grayInverseWorker=createWorker()
-const inverseGrayMaskWorker=createWorker()
-var asyncLines=[]
-const  [lines,setLines]=useState([])
+  const normalWorker = createWorker();
+  const grayWorker = createWorker();
+  const inverseWorker = createWorker();
+  const inverseGrayWorker = createWorker();
+  const grayInverseWorker = createWorker();
+  var asyncLines = [];
 
-const workers=[normalWorker,grayWorker,inverseWorker,grayInverseWorker,inverseGrayWorker,inverseGrayMaskWorker]
+  const workers = [
+    normalWorker,
+    grayWorker,
+    inverseWorker,
+    grayInverseWorker,
+    inverseGrayWorker,
+  ];
+  const [isLoading, setIsLoading] = useState(false);
 
-const recognizeAll=async(img)=>{
-  console.log("started")
-  const transformedImages=[
-    await Image.load(img).then(img=>img.toDataURL()),
-    await Image.load(img).then(img=>img.grey().toDataURL()),
-    await Image.load(img).then(img=>img.invert().toDataURL()),
-    await Image.load(img).then(img=>img.grey().invert().toDataURL()),
-    await Image.load(img).then(img=>img.invert().grey().toDataURL()),
-    await Image.load(img).then(img=>img.invert().grey().mask({threshold:0.55}).toDataURL())
-  ]
-  workers.forEach((worker,index)=>doOCR(worker,transformedImages[index],index))
-  
-}
+  const recognizeAll = async (img) => {
+    setIsLoading(true);
+    const transformedImages = [
+      await Image.load(img).then((img) => img.toDataURL()),
+      await Image.load(img).then((img) => img.grey().toDataURL()),
+      await Image.load(img).then((img) => img.invert().toDataURL()),
+      await Image.load(img).then((img) => img.grey().invert().toDataURL()),
+      await Image.load(img).then((img) => img.invert().grey().toDataURL()),
+    ];
+    workers.forEach((worker, index) =>
+      doOCR(worker, transformedImages[index], index)
+    );
+  };
 
-  const changeLanguage = (language, persist = false) => {
-    i18n.changeLanguage(language);
-    if (persist) {
-      localStorage.setItem("lang", language);
+  const checkForBetterGuesses = (lines) => {
+    const wholeText = lines.map((line) => line.text).join("");
+    let newText = "";
+    const words = [];
+    const symbols = [];
+    lines.forEach((line) => words.push(...line.words));
+    words.forEach((word) => symbols.push(...word.symbols));
+    const keyWords = ["use", "set"];
+    let symbolsOffset = 0;
+    let indentation = 0
+    for (let i = 0; i < wholeText.length; i++) {
+      //update offset
+      if (
+        symbols[i - symbolsOffset] &&
+        wholeText[i] !== symbols[i - symbolsOffset].text
+      ) {
+        symbolsOffset++;
+      }
+      if(wholeText[i]==="{")indentation++
+      if(wholeText[i]==="}")indentation--
+      //ones checking values before
+      if (i > 0 && i < wholeText.length) {
+        
+        //give indentation
+        if(wholeText[i-1]==='\n')
+        for(let j=0;j<indentation;j++)
+          newText+='\t'
+        //if in square braces then change to 0
+        if (wholeText[i - 1] === "[" && wholeText[i + 1] === "]") {
+          if (symbols[i - symbolsOffset].confidence < 95) {
+            newText += "0";
+            continue;
+          }
+        }
+        //if zero surrounded by letters then change into capital O
+        if (
+          !isDigit(wholeText[i - 1]) &&
+          !isDigit(wholeText[i + 1]) &&
+          isDigit(wholeText[i])
+        ) {
+          if (
+            symbols[i - symbolsOffset] &&
+            symbols[i - symbolsOffset].confidence < 95
+          ) {
+            newText += "O";
+            continue;
+          }
+        }
+        //if it's a line with only b at the end then change it to };
+        if (
+          wholeText[i - 1] === "\n" &&
+          wholeText[i + 1] === "\n" &&
+          wholeText[i] === "b"
+        ) {
+          indentation--
+          newText=newText.slice(0,-1)
+          newText+="};"
+          continue;
+        }
+        //delete whitespaces after dots
+        if (wholeText[i - 1] === "." && wholeText[i] === " ") continue;
+        //delete whitespace between letter and paranthesis
+        if (
+          !isDigit(wholeText[i - 1]) &&
+          wholeText[i] === " " &&
+          wholeText[i + 1] === "("
+        )
+          continue;
+        //if keyword before 's' then capitilize it
+        if (
+          keyWords.includes(wholeText.slice(i - 3, i)) &&
+          wholeText[i] === "s"
+        ) {
+          newText += "S";
+          continue;
+        }
+
+      }
+      newText += wholeText[i];
+    }
+    return newText
+  };
+
+  const isDigit = (symbol) => {
+    if (typeof symbol === "string")
+      return symbol.toLowerCase() === symbol.toUpperCase();
+    else return false;
+  };
+
+  const [srcObject, setSrcObject] = useState("");
+
+  const doOCR = async (worker, url, index) => {
+    await worker.load();
+    await worker.loadLanguage("eng");
+    await worker.initialize("eng");
+    const { data } = await worker.recognize(url);
+    await data.lines.forEach((line, index) => {
+      if (!asyncLines[index] || asyncLines[index].confidence < line.confidence)
+        asyncLines[index] = line;
+    });
+
+    if (index === 4) {
+      setIsLoading(false);
+     // asyncLines.forEach((line) => setSrcObject((prev) => prev + line.text));
+      setSrcObject(checkForBetterGuesses(asyncLines))
+      //setSrcObject(asyncLines.map((line) => line.text).join(""));
     }
   };
 
-  //const [ocr, setOcr] = useState("Recognizing...");
-  const [srcObject, setSrcObjext] = useState("");
-  const srcDoc = `
-<html>
-  <body>${srcObject}</body>
-</html>
-`;
-  const doOCR = async (worker,url,index) => {
-    await worker.load();
-    await worker.loadLanguage(i18nToTessLang(i18n.language));
-    await worker.initialize(i18nToTessLang(i18n.language));
-    const {data} = await worker.recognize(url);
-    await data.lines.forEach( (line,index)=>{
-      if(index===7)console.log(line.confidence,line.text)
-      if(!asyncLines[index]||asyncLines[index].confidence<line.confidence)
-      asyncLines[index]=line
-    })
-    console.log(data.hocr)
-
-    console.log([...asyncLines])
-    if(index===5)
-    setLines(asyncLines)
-  };
-
-  const video = useRef();
   const fileInput = useRef();
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  const [w, h] = [video.current?.videoWidth, video.current?.videoHeight];
-  canvas.width = w;
-  canvas.height = h;
-
-  var constraints = { audio: false, video: { width: 720, height: 720 } };
-
-  useEffect(() => {
-    //ensure language is correct
-    if (!localStorage.getItem("lang")) changeLanguage(navToi18nLang());
-    else if (localStorage.getItem("lang") !== i18n.language)
-      changeLanguage(localStorage.getItem("lang"));
-
-    //setup camera
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(function (mediaStream) {
-        video.current.srcObject = mediaStream;
-        video.current.onloadedmetadata = function (e) {
-          video.current.play();
-        };
-      })
-      .catch(function (err) {
-        console.log(err.name + ":" + err.message);
-      });
-    // eslint-disable-next-line
-  }, []);
-
-  const takeAPhoto = () => {
-    video.current.pause();
-    context.drawImage(video.current, 0, 0, w, h);
-    doOCR(canvas.toDataURL());
-  };
-
-  const startAgain = () => {
-    video.current.play();
-  };
 
   const uploadFile = () => {
     fileInput.current.click();
@@ -110,36 +157,15 @@ const recognizeAll=async(img)=>{
 
   const [src, setSrc] = useState("");
   const recognizeUploaded = (e) => {
-    console.log(e.target.files[0]);
     const url = URL.createObjectURL(e.target.files[0]);
-
-    //setSrc(url);
-    //doOCR(url);
-    testCanny(url);
-  };
-
-  const testCanny = (url) => {
-    recognizeAll(url)
-  // Image.load(url).then((img) => {
-  //   console.log("img: ", img);
-  //   const grey = img.invert().grey().mask({threshold: 0.55})
-  //  /*    .grey().invert() 
-  //     .mask({ threshold: 0.3 });
-  //   console.log("grey: ", grey); */
-  //   // const edge = cannyEdgeDetector(grey);
-  //   //console.log("edge: ", edge);
-  //   setSrc(grey.toDataURL());
-  //   doOCR(grey.toDataURL())
-  // });
+    setSrc(url);
+    recognizeAll(url);
   };
 
   return (
     <div className="App">
-      <button onClick={() => changeLanguage("en", true)}>EN</button>
-      <button onClick={() => changeLanguage("pl", true)}>PL</button>
-      <button onClick={takeAPhoto}>{t("takeAPhoto")}</button>
-      <button onClick={startAgain}>{t("restart")}</button>
-      <video ref={video} />
+      <LocalizationHandling />
+      <Camera doOCR={doOCR} />
       <button onClick={uploadFile}>{t("fileUpload")}</button>
       <input
         type="file"
@@ -149,9 +175,11 @@ const recognizeAll=async(img)=>{
         accept="image/*"
         hidden
       />
-      {src && <img src={lines} alt="" />}
-      {lines.map(line=><div>{line.text}</div>)}
-      <iframe width="720" srcDoc={srcDoc} title="output" sandbox="allow-scripts" />
+      {isLoading && <Spinner />}
+      {!isLoading && src && <img src={src} alt="" />}
+      {!isLoading && srcObject && (
+        <CodeWindow value={srcObject} onChange={setSrcObject} />
+      )}
     </div>
   );
 };
