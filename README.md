@@ -31,4 +31,5 @@ TODO:
 - useContext for possible state management
 - Framer Motion
 - Cypress/React test library
+- deploy & CI/CD with github actions
 - optimalization of recognition for different languages
