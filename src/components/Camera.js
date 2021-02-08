@@ -1,27 +1,32 @@
-import React, { useRef, useEffect,useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-const Camera = ({ doOCR }) => {
+const Camera = ({ doOCR, isCameraOn }) => {
   const { t } = useTranslation();
-  const [isCameraOn, setIsCameraOn] = useState(false);
   const video = useRef();
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const [w, h] = [video.current?.videoWidth, video.current?.videoHeight];
   canvas.width = w;
   canvas.height = h;
-  var constraints = { audio: false, video: { width: 720, height: 720 } };
+  var constraints = {
+    audio: false,
+    video: {
+      width: document.body.clientWidth,
+      height: document.body.clientHeight,
+    },
+  };
 
   useEffect(() => {
     //setup camera=
-    const currentVid=video.current
+    const currentVid = video.current;
     if (isCameraOn)
       navigator.mediaDevices
         .getUserMedia(constraints)
         .then((mediaStream) => {
-            currentVid.srcObject = mediaStream;
-            currentVid.onloadedmetadata = function (e) {
-                currentVid.play();
+          currentVid.srcObject = mediaStream;
+          currentVid.onloadedmetadata = function (e) {
+            currentVid.play();
           };
         })
         .catch(function (err) {
@@ -45,21 +50,10 @@ const Camera = ({ doOCR }) => {
   };
 
   return (
-    <><span>
-    <input
-      type="checkbox"
-      value={isCameraOn}
-      onChange={(e) => setIsCameraOn((prev) => !prev)}
-    />
-    turn camera on
-  </span>
-      {isCameraOn && (
-        <>
-          <button onClick={takeAPhoto}>{t("takeAPhoto")}</button>
-          <button onClick={startAgain}>{t("restart")}</button>
-          <video ref={video} />
-        </>
-      )}
+    <>
+      <button onClick={takeAPhoto}>{t("takeAPhoto")}</button>
+      <button onClick={startAgain}>{t("restart")}</button>
+      <video ref={video} />
     </>
   );
 };

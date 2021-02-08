@@ -29,7 +29,7 @@ const CodeWindow = ({ value, onChange }) => {
   const handleChange = (editor, data, value) => {
     onChange(value);
   };
-  const select=useRef()
+  const select = useRef();
   const options = [
     { label: "javascript", modeName: "javascript" },
     { label: "xml/html", modeName: "xml" },
@@ -59,9 +59,13 @@ const CodeWindow = ({ value, onChange }) => {
   ];
   return (
     <>
-    <select ref={select}>
-        {options.map(op=><option value={op.modeName}>{op.label}</option>)}
-    </select>
+      <select ref={select}>
+        {options.map((op) => (
+          <option key={op.label} value={op.modeName}>
+            {op.label}
+          </option>
+        ))}
+      </select>
       <Clipboard data-clipboard-text={value}>copy to clipboard</Clipboard>
       <ControlledEditor
         onBeforeChange={handleChange}
@@ -69,7 +73,7 @@ const CodeWindow = ({ value, onChange }) => {
         options={{
           lineWrapping: true,
           lint: true,
-          mode: select.current?.value||"javascript",
+          mode: select.current?.value || "javascript",
           lineNumbers: true,
           theme: "material",
           autocapitalize: true,

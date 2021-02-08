@@ -15,15 +15,20 @@ Done:
 - paste behind current lines
 - don't break when no file selected
 - drag'n drop
-- make it pastebale/
+- make it pastebale
+- visual component library
 
 TODO:
 
-- visual component library
+- finish mobile view
+- design sideways mobile view
+- design Desktop view
+- reorganize files in project
 - PWA
 - Typescript
-- Cypress/React test library
-- Framer Motion
-- optimalization of recognition for different languages
-- useContext for possible state management
+- add dark/ligh theme
 - offline options
+- useContext for possible state management
+- Framer Motion
+- Cypress/React test library
+- optimalization of recognition for different languages

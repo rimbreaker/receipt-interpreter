@@ -6,7 +6,24 @@ import Image from "image-js";
 import CodeWindow from "./components/CodeWindow";
 import Spinner from "./components/Spinner";
 import LocalizationHandling from "./components/LocalizationHandling";
-
+import {
+  SwipeableDrawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  Switch,
+  ListItemText,
+  IconButton,
+  BottomNavigation,
+  BottomNavigationAction,
+} from "@material-ui/core";
+import TranslateIcon from "@material-ui/icons/Translate";
+import LightModeIcon from "@material-ui/icons/BrightnessHigh";
+import DarkModeIcon from "@material-ui/icons/Brightness4";
+import OfflineOptionsIcon from "@material-ui/icons/WifiOff";
+import MenuIcon from "@material-ui/icons/Dehaze";
+import UploadIcon from "@material-ui/icons/CloudUpload";
+import CameraIcon from "@material-ui/icons/CameraAlt";
 
 const App = () => {
   const { t } = useTranslation();
@@ -156,7 +173,6 @@ const App = () => {
   const [src, setSrc] = useState("");
 
   const recognizeUploaded = (file) => {
-    
     if (file) {
       const url = URL.createObjectURL(file);
       setSrc(url);
@@ -164,48 +180,118 @@ const App = () => {
     }
   };
 
-  const dropFile=(e)=>{
+  const dropFile = (e) => {
     e.preventDefault();
-    
-    if(e.dataTransfer.items){
-      if(e.dataTransfer.items[0].kind==='file')
-      var file=e.dataTransfer.items[0].getAsFile()
-      recognizeUploaded(file)
-    }else{
-      recognizeUploaded(e.dataTransfer.files[0])
+
+    if (e.dataTransfer.items) {
+      if (e.dataTransfer.items[0].kind === "file")
+        var file = e.dataTransfer.items[0].getAsFile();
+      recognizeUploaded(file);
+    } else {
+      recognizeUploaded(e.dataTransfer.files[0]);
     }
-  }
+  };
 
-  document.onpaste = function(pasteEvent) {
-  var item = pasteEvent.clipboardData.items[0];
+  document.onpaste = function (pasteEvent) {
+    var item = pasteEvent.clipboardData.items[0];
 
-  if (item?.type.indexOf("image") === 0) {
-    var blob = item.getAsFile();
-    recognizeUploaded(blob)
-  }
-}
+    if (item?.type.indexOf("image") === 0) {
+      var blob = item.getAsFile();
+      recognizeUploaded(blob);
+    }
+  };
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(0);
   return (
-    <div className="App">
-      <LocalizationHandling />
-      <Camera doOCR={doOCR} />
-      <div style={{background:'blue',height:"100px",width:"400px",color:'white'}} id="drop_zone" onDrop={dropFile}  onDragOver={e=>e.preventDefault()} >
-        <input  ></input>
-        <p>Drag and drop here</p>
-      </div>
-      <button onClick={uploadFile}>{t("fileUpload")}</button>
-      <input
-        type="file"
-        name="file"
-        ref={fileInput}
-        onChange={e=>recognizeUploaded(e.target.files[0])}
-        accept="image/*"
-        hidden
-      />
+    <>
+      <SwipeableDrawer
+        style={{ height: "200px" }}
+        anchor="left"
+        open={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOpen={() => setIsDrawerOpen(true)}
+      >
+        <List>
+          <ListItem>
+            <ListItemIcon>
+              <TranslateIcon />
+            </ListItemIcon>
+            <LocalizationHandling />
+          </ListItem>
+          <ListItem>
+            <ListItemIcon>
+              {isDarkMode ? <DarkModeIcon /> : <LightModeIcon />}
+            </ListItemIcon>
+            <Switch
+              checked={isDarkMode}
+              onChange={() => setIsDarkMode((prev) => !prev)}
+            />
+          </ListItem>
+          <ListItem button>
+            <ListItemIcon>
+              <OfflineOptionsIcon />
+            </ListItemIcon>
+            <ListItemText>offline options</ListItemText>
+          </ListItem>
+        </List>
+      </SwipeableDrawer>
+      <IconButton onClick={() => setIsDrawerOpen(true)}>
+        <MenuIcon />
+      </IconButton>
+
       {isLoading && <Spinner />}
       {!isLoading && src && <img src={src} alt="" />}
 
+      {selectedOption === 0 ? (
+        <>
+          <div
+            style={{
+              background: "blue",
+              height: "100px",
+              width: "100%",
+              color: "white",
+            }}
+            id="drop_zone"
+            onDrop={dropFile}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <input></input>
+            <p>Drag and drop here</p>
+          </div>
+          <button onClick={uploadFile}>{t("fileUpload")}</button>
+          <input
+            type="file"
+            name="file"
+            ref={fileInput}
+            onChange={(e) => recognizeUploaded(e.target.files[0])}
+            accept="image/*"
+            hidden
+          />
+        </>
+      ) : (
+        <Camera doOCR={doOCR} isCameraOn={selectedOption === 1} />
+      )}
       <CodeWindow value={srcObject} onChange={setSrcObject} />
-    </div>
+      <BottomNavigation
+        style={{
+          position: "fixed",
+          bottom: 0,
+          margin: "0",
+          padding: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+        }}
+        value={selectedOption}
+        onChange={(event, newValue) => setSelectedOption(newValue)}
+        showLabels
+      >
+        <BottomNavigationAction label="Upload file" icon={<UploadIcon />} />
+        <BottomNavigationAction label="Take a photo" icon={<CameraIcon />} />
+      </BottomNavigation>
+    </>
   );
 };
 
