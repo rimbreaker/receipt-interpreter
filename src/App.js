@@ -16,8 +16,10 @@ import {
   IconButton,
   BottomNavigation,
   BottomNavigationAction,
+  Paper,
+  useTheme,
+  Typography,
 } from "@material-ui/core";
-import TranslateIcon from "@material-ui/icons/Translate";
 import LightModeIcon from "@material-ui/icons/BrightnessHigh";
 import DarkModeIcon from "@material-ui/icons/Brightness4";
 import OfflineOptionsIcon from "@material-ui/icons/WifiOff";
@@ -27,7 +29,7 @@ import CameraIcon from "@material-ui/icons/CameraAlt";
 
 const App = () => {
   const { t } = useTranslation();
-
+  const theme = useTheme();
   const normalWorker = createWorker();
   const grayWorker = createWorker();
   const inverseWorker = createWorker();
@@ -204,6 +206,7 @@ const App = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedOption, setSelectedOption] = useState(0);
+  console.log();
   return (
     <>
       <SwipeableDrawer
@@ -214,12 +217,6 @@ const App = () => {
         onOpen={() => setIsDrawerOpen(true)}
       >
         <List>
-          <ListItem>
-            <ListItemIcon>
-              <TranslateIcon />
-            </ListItemIcon>
-            <LocalizationHandling />
-          </ListItem>
           <ListItem>
             <ListItemIcon>
               {isDarkMode ? <DarkModeIcon /> : <LightModeIcon />}
@@ -235,6 +232,12 @@ const App = () => {
             </ListItemIcon>
             <ListItemText>offline options</ListItemText>
           </ListItem>
+          <ListItem button>
+            <ListItemIcon>
+              <OfflineOptionsIcon />
+            </ListItemIcon>
+            <ListItemText>app info</ListItemText>
+          </ListItem>
         </List>
       </SwipeableDrawer>
       <IconButton onClick={() => setIsDrawerOpen(true)}>
@@ -246,29 +249,32 @@ const App = () => {
 
       {selectedOption === 0 ? (
         <>
-          <div
+          <Paper
+            variant="outlined"
+            background="grey"
             style={{
-              background: "blue",
-              height: "100px",
-              width: "100%",
-              color: "white",
+              background: theme.palette.grey.A100,
+              height: "80px",
+              display: "flex",
+              alignItems: "center",
             }}
             id="drop_zone"
             onDrop={dropFile}
             onDragOver={(e) => e.preventDefault()}
+            onClick={uploadFile}
           >
-            <input></input>
-            <p>Drag and drop here</p>
-          </div>
-          <button onClick={uploadFile}>{t("fileUpload")}</button>
-          <input
-            type="file"
-            name="file"
-            ref={fileInput}
-            onChange={(e) => recognizeUploaded(e.target.files[0])}
-            accept="image/*"
-            hidden
-          />
+            <Typography variant="h5" align="center">
+              Drag and drop here, or click to upload
+            </Typography>
+            <input
+              type="file"
+              name="file"
+              ref={fileInput}
+              onChange={(e) => recognizeUploaded(e.target.files[0])}
+              accept="image/*"
+              hidden
+            />
+          </Paper>
         </>
       ) : (
         <Camera doOCR={doOCR} isCameraOn={selectedOption === 1} />

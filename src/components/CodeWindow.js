@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/material.css";
 import "codemirror/mode/xml/xml";
@@ -21,6 +21,16 @@ import "codemirror/mode/dockerfile/dockerfile";
 import "codemirror/mode/django/django";
 import "codemirror/mode/dart/dart";
 import "codemirror/mode/clike/clike";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Select,
+  Fab,
+  useTheme,
+  Zoom,
+} from "@material-ui/core";
+import { FileCopy } from "@material-ui/icons";
 
 import { Controlled as ControlledEditor } from "react-codemirror2";
 import Clipboard from "react-clipboard.js";
@@ -29,7 +39,7 @@ const CodeWindow = ({ value, onChange }) => {
   const handleChange = (editor, data, value) => {
     onChange(value);
   };
-  const select = useRef();
+
   const options = [
     { label: "javascript", modeName: "javascript" },
     { label: "xml/html", modeName: "xml" },
@@ -57,32 +67,80 @@ const CodeWindow = ({ value, onChange }) => {
     { label: "scala", modeName: "clike" },
     { label: "kotlin", modeName: "clike" },
   ];
+
+  const [currentLanguage, setCurrentLanguage] = useState("javascript");
+
+  const theme = useTheme();
+
+  const [displayCopy, setDiaplayCopy] = useState(false);
+  const FloatingB = () => {
+    return (
+      <Zoom in={displayCopy} unmountOnExit>
+        <Fab
+          color="primary"
+          style={{
+            position: "absolute",
+            bottom: theme.spacing(4),
+            right: theme.spacing(3),
+            zIndex:theme.zIndex.appBar
+          }}
+          label="copy to clipboard"
+        >
+          <FileCopy />
+        </Fab>
+      </Zoom>
+    );
+  };
+
+
   return (
-    <>
-      <select ref={select}>
-        {options.map((op) => (
-          <option key={op.label} value={op.modeName}>
-            {op.label}
-          </option>
-        ))}
-      </select>
-      <Clipboard data-clipboard-text={value}>copy to clipboard</Clipboard>
-      <ControlledEditor
-        onBeforeChange={handleChange}
-        value={value}
-        options={{
-          lineWrapping: true,
-          lint: true,
-          mode: select.current?.value || "javascript",
-          lineNumbers: true,
-          theme: "material",
-          autocapitalize: true,
-          autocorrect: true,
-          smartIndent: true,
-          spellcheck: true,
-        }}
+    <Card>
+      <CardHeader
+        title="Generated Code"
+        action={
+          <Select
+            style={{ marginTop: "8px" }}
+            native
+            value={currentLanguage}
+            onChange={setCurrentLanguage}
+            displayEmpty
+          >
+            {options.map((option) => (
+              <option key={option.label} value={option.modeName}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        }
       />
-    </>
+
+      <CardContent
+        onMouseEnter={() => setDiaplayCopy(true)}
+        onFocus={() => setDiaplayCopy(true)}
+        onBlur={() => setDiaplayCopy(false)}
+        onMouseLeave={() => setDiaplayCopy(false)}
+        style={{position:"relative"}}
+      >
+        <Clipboard data-clipboard-text={value} component={FloatingB}/>
+        
+        <ControlledEditor
+          
+          onBeforeChange={handleChange}
+          value={value}
+          options={{
+            lineWrapping: true,
+            lint: true,
+            mode: currentLanguage,
+            lineNumbers: true,
+            theme: "material",
+            autocapitalize: true,
+            autocorrect: true,
+            smartIndent: true,
+            spellcheck: true,
+          }}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
