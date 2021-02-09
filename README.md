@@ -21,12 +21,18 @@ Done:
 TODO:
 
 - finish mobile view
+  {
+  camera view
+  info button
+  margins!
+  dark theme for code window
+  }
 - design sideways mobile view
 - design Desktop view
 - reorganize files in project
+- add dark/ligh theme
 - PWA
 - Typescript
-- add dark/ligh theme
 - offline options
 - useContext for possible state management
 - Framer Motion
